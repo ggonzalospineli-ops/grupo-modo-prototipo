@@ -204,7 +204,7 @@
 .scene .van{animation:vanbob .36s ease-in-out infinite alternate}
 .scene .van-shell{fill:#fff;stroke:#d5e2f5;stroke-width:2}
 .scene .van-glass{fill:#0b1f5c}.scene .van-stripe{stroke:#0757d6;stroke-width:6}
-.scene .van-t{font:800 13px var(--sans);letter-spacing:.04em;fill:#0757d6}
+.scene .van-t{font:800 10px var(--sans);fill:#0757d6}
 .scene .van-light{fill:#ffd166}
 .scene .van-wheel{transform-box:fill-box;transform-origin:center;animation:spin .5s linear infinite}
 .scene .van-wheel circle{fill:#1b2340}.scene .van-wheel .hub{fill:#c9d6ea}.scene .van-wheel path{stroke:#c9d6ea;stroke-width:3}
