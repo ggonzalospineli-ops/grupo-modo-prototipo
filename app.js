@@ -41,33 +41,20 @@ new IntersectionObserver(([entry]) => {
   else if (playing) play();
 }, { threshold: .3 }).observe(journey);
 
-// Mapa de red: puntos de venta dentro de cada zona y estado en ruta
-const svg = document.querySelector('.net-map');
-const dots = document.querySelector('#pos-dots');
-let seed = 7;
-const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-[['#zone-caba', 55], ['#zone-gba', 80]].forEach(([id, count]) => {
-  const zone = document.querySelector(id), box = zone.getBBox();
-  let placed = 0, tries = 0;
-  while (placed < count && tries++ < 2000) {
-    const x = box.x + rand() * box.width, y = box.y + rand() * box.height;
-    const point = svg.createSVGPoint(); point.x = x; point.y = y;
-    if (zone.isPointInFill && !zone.isPointInFill(point)) continue;
-    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', y.toFixed(1)); c.setAttribute('r', '1.8');
-    c.style.animationDelay = (rand() * 3.2).toFixed(2) + 's';
-    dots.appendChild(c); placed++;
-  }
+// Hero: cada paquete que llega a un comercio dispara el aviso de entrega
+const toast = document.querySelector('.scene-toast');
+const toastPlace = document.querySelector('#toast-place');
+const places = ['Almacén de barrio', 'Kiosco', 'Autoservicio', 'Despensa', 'Maxikiosco', 'Supermercado chino'];
+let placeIdx = 0;
+const deliver = () => {
+  toastPlace.textContent = places[placeIdx++ % places.length];
+  toast.classList.remove('pop'); void toast.offsetWidth; toast.classList.add('pop');
+};
+if (toast && !reduceMotion) document.querySelectorAll('.parcel-fly').forEach(p => {
+  const schedule = () => setTimeout(deliver, 2180);
+  p.addEventListener('animationstart', schedule);
+  p.addEventListener('animationiteration', schedule);
 });
-if (reduceMotion) svg.pauseAnimations();
-
-const statusText = document.querySelector('#map-status-text');
-const phases = ['Ingreso de mercadería al hub', 'Preparación de pedidos', 'Salida de camionetas a CABA', 'Entregas en GBA Sur'];
-let phase = 0;
-if (!reduceMotion) setInterval(() => {
-  statusText.style.opacity = 0;
-  setTimeout(() => { phase = (phase + 1) % phases.length; statusText.textContent = phases[phase]; statusText.style.opacity = 1; }, 300);
-}, 2600);
 
 // Cobertura: partidos clickeables, filtros y ruta desde el hub
 const cov = document.querySelector('.cov-map');
