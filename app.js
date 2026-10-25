@@ -1,5 +1,90 @@
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// Revelado por scroll: títulos palabra por palabra, bloques con fundido y grupos escalonados
+const splitWords = el => {
+  let i = 0;
+  const walk = node => [...node.childNodes].forEach(child => {
+    if (child.nodeType === 3) {
+      const frag = document.createDocumentFragment();
+      child.textContent.split(/(\s+)/).forEach(part => {
+        if (!part) return;
+        if (/^\s+$/.test(part)) { frag.append(part); return; }
+        const w = document.createElement('span'); w.className = 'w';
+        const wi = document.createElement('span'); wi.className = 'wi'; wi.style.setProperty('--i', i++); wi.textContent = part;
+        w.append(wi); frag.append(w);
+      });
+      child.replaceWith(frag);
+    } else if (child.nodeType === 1 && child.tagName !== 'BR') walk(child);
+  });
+  walk(el);
+  el.classList.add('split');
+};
+const mark = (selector, type = '', delay = 0) => document.querySelectorAll(selector).forEach(el => {
+  el.dataset.reveal = type; if (delay) el.style.setProperty('--d', delay + 's');
+});
+const stagger = (selector, step = .09, type = '') => document.querySelectorAll(selector).forEach(el => {
+  const index = [...el.parentElement.children].filter(c => c.matches(selector)).indexOf(el);
+  el.dataset.reveal = type; el.style.setProperty('--d', (index * step).toFixed(2) + 's');
+});
+
+document.querySelectorAll('main h1, main h2').forEach(h => { splitWords(h); h.dataset.reveal = ''; });
+mark('.kicker', 'fade');
+mark('.hero-copy > p:not(.kicker), .intro-bottom p, .section-top > p, .fleet-copy > p:not(.kicker), .coverage-copy > p:not(.kicker), .contact-intro > p:not(.kicker)', '', .15);
+mark('.hero-actions, .under-link, .intro-tag, .contact-intro > span', '', .3);
+mark('.hero-scene, .cov-card', 'zoom', .1);
+mark('.fleet-photo', 'clip');
+stagger('.hero-stats > span', .12);
+stagger('.journey-step', .1);
+stagger('.impact article', .08);
+stagger('.coverage-stats > div', .1);
+stagger('.partner', .12);
+stagger('.contact form > *', .06);
+document.querySelectorAll('.hero-stats, .intro-bottom, .journey-footer, .coverage-stats').forEach(el => { el.dataset.line = ''; });
+
+const hero = document.querySelector('.hero');
+hero.querySelector('.kicker').style.setProperty('--d', '0s');
+hero.querySelector('h1').style.setProperty('--d', '.15s');
+hero.querySelector('.hero-copy > p:not(.kicker)').style.setProperty('--d', '.55s');
+hero.querySelector('.hero-actions').style.setProperty('--d', '.7s');
+hero.querySelector('.hero-scene').style.setProperty('--d', '.35s');
+hero.querySelectorAll('.hero-stats > span').forEach((s, i) => s.style.setProperty('--d', (.85 + i * .12) + 's'));
+
+const revealTargets = document.querySelectorAll('[data-reveal], [data-line]');
+if (reduceMotion || !('IntersectionObserver' in window)) revealTargets.forEach(el => el.classList.add('in'));
+else {
+  const revealer = new IntersectionObserver(entries => entries.forEach(({ isIntersecting, target }) => {
+    if (isIntersecting) { revealer.reveal(target); revealer.unobserve(target); }
+  }), { threshold: .12, rootMargin: '0px 0px -8% 0px' });
+  // un elemento recortado con clip-path no cuenta como visible: se observa su contenedor
+  const watched = new Map();
+  revealTargets.forEach(el => {
+    const node = el.dataset.reveal === 'clip' ? el.parentElement : el;
+    watched.set(node, [...(watched.get(node) || []), el]);
+    revealer.observe(node);
+  });
+  revealer.reveal = node => (watched.get(node) || [node]).forEach(el => el.classList.add('in'));
+}
+
+// Barra de progreso y navegación: se esconde al bajar, vuelve al subir, marca la sección actual
+const progress = document.querySelector('.scroll-progress');
+const nav = document.querySelector('.nav');
+const navLinks = [...document.querySelectorAll('.nav nav a')];
+let lastY = scrollY, ticking = false;
+const onScroll = () => {
+  const y = scrollY, max = document.documentElement.scrollHeight - innerHeight;
+  progress.style.transform = `scaleX(${max > 0 ? y / max : 0})`;
+  nav.classList.toggle('scrolled', y > 40);
+  if (y > 300 && y > lastY + 4) nav.classList.add('hidden');
+  else if (y < lastY - 4 || y <= 300) nav.classList.remove('hidden');
+  lastY = y;
+  let current = null;
+  navLinks.forEach(a => { const sec = document.querySelector(a.getAttribute('href')); if (sec && sec.getBoundingClientRect().top < innerHeight * .4) current = a; });
+  navLinks.forEach(a => a.classList.toggle('current', a === current));
+  ticking = false;
+};
+addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+onScroll();
+
 // Recorrido del proceso: el paquete avanza etapa por etapa
 const journey = document.querySelector('.journey');
 const steps = [...document.querySelectorAll('.journey-step')];
